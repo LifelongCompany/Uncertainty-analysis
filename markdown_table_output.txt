@@ -1,0 +1,10 @@
+| Scenario | Mean CE (gCO$_2$e) | 95% CI (gCO$_2$e) |
+|----------|-------------------|-------------------|
+| Offline_invoice | 298.55 | [177.67, 433.12] |
+| Offline_e-invoice | 294.62 | [170.21, 428.79] |
+| Offline_card_registration | 317.77 | [192.52, 453.18] |
+| Offline_inquiry | 238.22 | [146.48, 338.16] |
+| Offline_processing | 237.37 | [146.61, 338.01] |
+| Offline_payment | 302.82 | [180.34, 437.53] |
+| Offline_loan | 398.78 | [284.70, 524.81] |
+| Offline_transfer | 268.92 | [159.43, 389.57] |
