@@ -1,51 +1,43 @@
-# Uncertainty Analysis of Carbon Emission Baselines in Service Scenarios: A Stochastic Modeling Approach
+# Uncertainty Analysis of Carbon Emission Baselines in Service Scenarios
 
-## 1. Project Overview
+## 1. What this repository does
+This repository quantifies the uncertainty in the baseline carbon footprint of nine typical offline service scenarios: invoice issuance, e-invoice issuance, card registration, general inquiries, processing, payments, loan issuance, financial transfers, and repayment. The motivation is that moving services from physical (offline) to digital (online) channels changes their emissions, and the offline baseline needs to be known together with its uncertainty range before any comparison is drawn.
 
-In the context of global climate change mitigation and the operationalization of corporate sustainability mandates, the precise quantification of greenhouse gas (GHG) emissions is paramount. The transition from physical (offline) to digital (online) service modalities presents substantial emission reduction opportunities. This repository delineates a rigorous methodological assessment of the baseline carbon footprint associated with 9 typical offline service scenarios, encompassing a spectrum of activities including invoice issuance, e-invoice issuance, card registration, general inquiries, processing, payments, loan issuance, financial transfers, and repayment operations.
+Two sources of variability matter here. Customer travel distance and physical material use (paper, SIM cards) differ a lot between individual transactions. The emission factors taken from secondary LCA databases also carry their own uncertainty. A single deterministic number is therefore not enough, so we use a Monte Carlo simulation to produce a distribution and confidence intervals for the per-transaction emission of each scenario.
 
-The primary objective of this study is to systematically evaluate the total baseline emissions generated per transaction across these diverse service ecosystems. Recognizing the inherent variability in empirical activity data—most notably customer travel distances and the consumption of physical materials (e.g., paper, SIM cards)—as well as the natural epistemological uncertainty embedded in secondary emission factors, deterministic single-point estimates are deemed insufficient. Consequently, this codebase deploys advanced stochastic modeling techniques via Python-based Monte Carlo simulations across multiple emission sources. This methodology robustly captures the statistical distribution of emission profiles, providing highly reliable confidence intervals essential for scientific publication and rigorous carbon accounting.
+## 2. Method
+For each scenario, a Monte Carlo simulation runs N = 10,000 iterations. The total baseline emission per transaction is the sum over its emission sources:
 
-## 2. Methodology
-
-To rigorously capture the intrinsic variability of the input parameters governing the physical service lifecycles across the 9 distinct scenarios, a comprehensive Monte Carlo Simulation ($N = 10,000$ iterations) is computationally executed for each scenario independently. The total baseline emission per transaction ($E_{total}$) for a given scenario is mathematically formulated as the aggregate of emissions originating from its specific constituent vectors, dynamically adapting to the presence of material consumption (e.g., paper, plastic cards) and requisite customer transportation.
-
-The fundamental deterministic equation is defined as follows:
 $$E_{total} = \sum_{i} (AD_i \times EF_i)$$
-where $AD_i$ denotes the Activity Data (e.g., mass, distance, units) and $EF_i$ represents the corresponding Emission Factor for process component $i$ unique to the evaluated scenario.
 
-### Parameter Distributions
-Baseline deterministic values were systematically extracted from the primary life cycle inventory (LCI) dataset. To construct the robust stochastic framework, normal probability density functions were computationally assigned to each parameter. The relative standard deviation (RSD), acting as a proxy for the uncertainty margin, was rigorously calibrated in accordance with standard life cycle assessment (LCA) data quality rubrics, tailored to the specific nature of the emission source:
+where $AD_i$ is the activity data (mass, distance, or units) and $EF_i$ is the corresponding emission factor for component $i$.
 
-- **Activity Data (AD) Variability:**
-  - **Transport Distance:** Assigned an RSD of 20%, empirically reflecting profound behavioral, geographic, and infrastructural variability inherent in customer travel.
-  - **Standardized Materials (Paper / SIM Cards):** Assigned an RSD of 10%, reflecting more tightly controlled, industrial supply chain consistency compared to human behavior.
-- **Emission Factor (EF) Variability:**
-  - **Transport EF:** Assigned an RSD of 10%, accommodating the uncertainty surrounding the precise modalities, fleet efficiencies, and operational conditions of the transport utilized by the client base.
-  - **Standardized Materials EF:** Assigned an RSD of 5%, as secondary LCA database emission factors for standard industrial products exhibit higher confidence intervals.
+### Parameter distributions
+Each parameter is assigned a normal distribution. The relative standard deviation (RSD) is taken from standard LCA data-quality guidance:
+- **Transport distance:** RSD 20% — travel behaviour varies widely across customers, geography, and infrastructure.
+- **Paper / SIM cards:** RSD 10% — supply chains for standardised materials are more controlled than human behaviour.
+- **Transport emission factor:** RSD 10% — reflects uncertainty about fleet efficiency and operating conditions.
+- **Material emission factor:** RSD 5% — secondary LCA factors for standard industrial products are more certain.
 
-To maintain strict physical plausibility and logical integrity, all probability density distributions are explicitly truncated at zero via the stochastic model, precluding mathematically viable but physically impossible negative domain artifacts.
+Distributions are truncated at zero so no physically impossible negative values are drawn.
 
-## 3. Data Source
+## 3. Data
+Inputs come from `data9.xlsx`. The file holds, per scenario:
+- **Scenario name** (e.g. "Offline loan", "Offline card registration")
+- **Emission sources** (material use, transport, ...)
+- **Activity data (TF):** baseline usage per process (grams of paper, distance travelled, ...)
+- **Emission factor (EF):** carbon intensity in kgCO₂e per unit
+- **Baseline emission (BE):** the static deterministic value, used to back-check the parameters
 
-The primary data driving the Monte Carlo simulations are extracted directly from the provided source file: `data9.xlsx`. This comprehensive dataset encapsulates the critical deterministic parameters required for all 9 scenarios. Specifically, the data architecture delineates:
+## 4. Outputs
+`analysis.py` runs the simulation and writes:
+- `all_scenarios_results.csv` — mean and 95% CI per scenario
+- `markdown_table_output.txt` — the same table in Markdown
+- `KDE_<Scenario>.png` (9 files, 600 dpi) — probability density per scenario with mean and 95% CI marked
+- `KDE_Grid_9_Scenarios.png` / `.pdf` — a 3×3 grid of all nine scenarios
 
-- **Scenario Name:** The specific offline operational context (e.g., "Offline loan", "Offline card registration").
-- **Emission Sources:** The distinct physical processes contributing to the carbon footprint (e.g., material usage, transportation).
-- **Activity Data (TF):** The baseline numerical usage metric for each process (e.g., grams of paper, distance traveled).
-- **Emission Factor (EF):** The corresponding carbon intensity metric ($kgCO_{2}e/unit$).
-- **Baseline Emission (BE):** The static, deterministic baseline carbon footprint metric, used for computational back-calculation and parameter integrity verification.
-
-## 4. Outputs & Visualization
-
-The computational framework (`analysis.py`) successfully executes the Monte Carlo methodologies, yielding both raw statistical outputs and high-fidelity, publication-ready visualizations conforming strictly to top-tier academic graphical standards (e.g., Nature Journal parameters, Times New Roman typography, high resolution vector and raster graphics).
-
-### 4.1 Probabilistic Carbon Emission Potentials
-The execution generates comprehensive probability distributions identifying profound operational variances. A summary table of the computed statistical means and corresponding 95% Confidence Intervals (CI) is auto-generated during runtime and outputted as `all_scenarios_results.csv` and a markdown representation (`markdown_table_output.txt`).
-
-Below is an example output table generated from the 9 scenario dataset:
-
-| Scenario | Mean CE (gCO$_2$e) | 95% CI (gCO$_2$e) |
+Example result table (from the 9-scenario dataset):
+| Scenario | Mean CE (gCO₂e) | 95% CI (gCO₂e) |
 |----------|-------------------|-------------------|
 | Offline_invoice | 298.55 | [177.67, 433.12] |
 | Offline_einvoice | 294.62 | [170.21, 428.79] |
@@ -57,40 +49,14 @@ Below is an example output table generated from the 9 scenario dataset:
 | Offline_transfer | 268.92 | [159.43, 389.57] |
 | Offline_Repayment | 267.14 | [157.49, 389.10] |
 
-### 4.2 High-Resolution Visualizations
-The code systematically produces distinct visual assets tailored for varied publication requirements:
-
-1. **Individual KDE Plots:**
-   For localized, specific analysis, 9 distinct Kernel Density Estimation (KDE) plots are independently generated and saved as individual `KDE_<Scenario>.png` files at $600 \text{ dpi}$. Each plot clearly maps the probability density, mean, and 95% confidence intervals natively within the figure frame.
-
-2. **Academic $3 \times 3$ Grid Figure:**
-   For comprehensive manuscript publication, a synthesized $3 \times 3$ subplot matrix (`KDE_Grid_9_Scenarios.png` and `KDE_Grid_9_Scenarios.pdf`) is autonomously assembled. This composite graphic maintains the $600 \text{ dpi}$ rigorous standards, integrates a global centralized legend to minimize graphical clutter, and isolates localized statistical data (Mean, 95% CI) into unobtrusive bounded textual overlays within each subplot.
-
 ## 5. Usage
-
-To execute the computational model and autonomously generate the data outputs and academic visualizations, strictly follow the procedural steps below within a bash environment:
-
-### Prerequisites Installation
-Ensure your Python environment possesses the requisite libraries and that the system has installed the necessary TrueType fonts to support the Nature journal typography standards (`Times New Roman`):
-
+Prerequisites:
 ```bash
-# Execute the font installation script to install required Microsoft TrueType fonts
-bash install_fonts.sh
-
-# Install Python dependencies
+bash install_fonts.sh   # installs Times New Roman for figure typography
 pip install pandas numpy matplotlib scipy openpyxl
 ```
-
-### Execution
-With dependencies satisfied, invoke the primary analytical script from the root repository directory containing the `data9.xlsx` file:
-
+Run:
 ```bash
-# Run the Monte Carlo simulation and graph generation architecture
 python analysis.py
 ```
-
-Upon successful execution, the script will systematically process all 9 scenarios from the primary dataset, generating and depositing the following into the local directory:
-- `all_scenarios_results.csv`
-- `markdown_table_output.txt`
-- 9 independent high-resolution `KDE_<Scenario>.png` graphical files.
-- The global $3 \times 3$ composite grids `KDE_Grid_9_Scenarios.png` and `KDE_Grid_9_Scenarios.pdf`.
+This processes all 9 scenarios from `data9.xlsx` and writes the files listed above into the repository directory.
